@@ -1,1 +1,7 @@
 project_id = "jyosxonvciovvvvqfzxs"
+
+[functions]
+enabled = true
+
+[functions.predict-career]
+verify_jwt = false

@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, ArrowRight, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import PersonalDetailsStep from "@/components/assessment/PersonalDetailsStep";
 import InterestsStep from "@/components/assessment/InterestsStep";
 import SkillsStep from "@/components/assessment/SkillsStep";
@@ -24,7 +26,9 @@ const TOTAL_STEPS = 4;
 
 const Assessment = () => {
   const [currentStep, setCurrentStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
+  const { toast } = useToast();
   
   const [formData, setFormData] = useState<AssessmentData>({
     fullName: "",
@@ -41,12 +45,22 @@ const Assessment = () => {
     setFormData((prev) => ({ ...prev, ...data }));
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentStep < TOTAL_STEPS) {
       setCurrentStep((prev) => prev + 1);
     } else {
-      // Navigate to results page
-      navigate("/results", { state: { formData } });
+      // Submit and navigate to results
+      setIsSubmitting(true);
+      try {
+        navigate("/results", { state: { formData } });
+      } catch (error) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to submit assessment. Please try again.",
+        });
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -127,11 +141,20 @@ const Assessment = () => {
 
               <Button
                 onClick={handleNext}
-                disabled={!isStepValid()}
+                disabled={!isStepValid() || isSubmitting}
                 className="shadow-md"
               >
-                {currentStep === TOTAL_STEPS ? "Get Results" : "Continue"}
-                <ArrowRight className="ml-2 h-4 w-4" />
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Analyzing...
+                  </>
+                ) : (
+                  <>
+                    {currentStep === TOTAL_STEPS ? "Get Results" : "Continue"}
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </>
+                )}
               </Button>
             </div>
           </Card>
