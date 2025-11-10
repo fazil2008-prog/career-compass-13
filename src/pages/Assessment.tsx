@@ -6,6 +6,7 @@ import { ArrowLeft, ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import type { User } from "@supabase/supabase-js";
 import PersonalDetailsStep from "@/components/assessment/PersonalDetailsStep";
 import InterestsStep from "@/components/assessment/InterestsStep";
 import SkillsStep from "@/components/assessment/SkillsStep";
@@ -27,6 +28,8 @@ const TOTAL_STEPS = 4;
 const Assessment = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
   
@@ -40,6 +43,35 @@ const Assessment = () => {
     hobbies: [],
     careerGoals: "",
   });
+
+  // Check authentication on mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          variant: "destructive",
+          title: "Authentication required",
+          description: "Please sign in to take the assessment.",
+        });
+        navigate("/auth");
+      } else {
+        setUser(user);
+      }
+      setIsCheckingAuth(false);
+    };
+
+    checkAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
+        navigate("/auth");
+      }
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate, toast]);
 
   const updateFormData = (data: Partial<AssessmentData>) => {
     setFormData((prev) => ({ ...prev, ...data }));
@@ -71,6 +103,17 @@ const Assessment = () => {
   };
 
   const progress = (currentStep / TOTAL_STEPS) * 100;
+
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen bg-muted/30 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   const isStepValid = () => {
     switch (currentStep) {

@@ -52,10 +52,17 @@ const Auth = () => {
 
       if (error) throw error;
 
-      if (data.user) {
+      if (data.user && data.session) {
         toast({
           title: "Account created!",
-          description: "You can now sign in and start your assessment.",
+          description: "Welcome! Redirecting you now...",
+        });
+        // User is automatically signed in with auto-confirm enabled
+        navigate("/");
+      } else if (data.user && !data.session) {
+        toast({
+          title: "Check your email",
+          description: "Please verify your email to continue.",
         });
       }
     } catch (error: any) {
